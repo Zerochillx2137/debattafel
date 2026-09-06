@@ -1,13 +1,12 @@
-export default async (req) => {
+export default async () => {
   const rssUrl =
-    process.env.NEWS_RSS_URL ||
     "https://feeds.nos.nl/nosnieuwsalgemeen";
 
   try {
     const response = await fetch(rssUrl);
 
     if (!response.ok) {
-      throw new Error(`RSS error: ${response.status}`);
+      throw new Error("NOS-nieuws kon niet worden opgehaald.");
     }
 
     const xml = await response.text();
@@ -21,75 +20,104 @@ export default async (req) => {
           const result = item.match(
             new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`)
           );
-          return result ? result[1].replace(/<!\[CDATA\[|\]\]>/g, "").trim() : "";
+
+          return result
+            ? result[1]
+                .replace(/<!\[CDATA\[|\]\]>/g, "")
+                .trim()
+            : "";
         };
 
+        const title = get("title");
+
         return {
-          title: get("title"),
-          description: get("description"),
-          link: get("link"),
+          title,
+          summary: get("description"),
+          source: "NOS",
           publishedAt: get("pubDate"),
+          url: get("link"),
+          category: getCategory(title),
+          tags: []
         };
       });
 
-    const debates = items.map((article) => ({
-      ...article,
-      statement: makeStatement(article.title),
-    }));
-
-    return new Response(JSON.stringify(debates), {
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    });
+    return new Response(
+      JSON.stringify({
+        updatedAt: new Date().toISOString(),
+        articles: items
+      }),
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      }
+    );
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        error: error.message
+      }),
       {
         status: 500,
         headers: {
-          "Content-Type": "application/json",
-        },
+          "Content-Type": "application/json"
+        }
       }
     );
   }
 };
 
-function makeStatement(title) {
-  const t = title.toLowerCase();
+function getCategory(title) {
+  const text = title.toLowerCase();
 
-  if (t.includes("klimaat") || t.includes("stikstof") || t.includes("co2")) {
-    return `De overheid moet strengere maatregelen nemen tegen klimaatverandering.`;
-  }
-
-  if (t.includes("onderwijs") || t.includes("school") || t.includes("student")) {
-    return `De overheid moet meer geld investeren in het onderwijs.`;
+  if (
+    text.includes("kabinet") ||
+    text.includes("minister") ||
+    text.includes("politiek") ||
+    text.includes("verkiez")
+  ) {
+    return "Nederlandse politiek";
   }
 
   if (
-    t.includes("asiel") ||
-    t.includes("migratie") ||
-    t.includes("vluchteling")
+    text.includes("klimaat") ||
+    text.includes("stikstof") ||
+    text.includes("co2")
   ) {
-    return `Nederland moet een strenger migratiebeleid voeren.`;
+    return "Klimaat";
   }
 
   if (
-    t.includes("technologie") ||
-    t.includes("ai") ||
-    t.includes("kunstmatige intelligentie")
+    text.includes("school") ||
+    text.includes("onderwijs") ||
+    text.includes("student")
   ) {
-    return `De overheid moet strengere regels invoeren voor nieuwe technologie en AI.`;
+    return "Onderwijs";
   }
 
   if (
-    t.includes("economie") ||
-    t.includes("belasting") ||
-    t.includes("geld")
+    text.includes("technologie") ||
+    text.includes("techniek") ||
+    text.includes("ai")
   ) {
-    return `De overheid moet meer maatregelen nemen om economische ongelijkheid te verminderen.`;
+    return "Technologie";
   }
 
-  return `De overheid moet meer actie ondernemen naar aanleiding van dit nieuws: "${title}".`;
+  if (
+    text.includes("europa") ||
+    text.includes("europese")
+  ) {
+    return "Europa";
+  }
+
+  if (
+    text.includes("economie") ||
+    text.includes("belasting") ||
+    text.includes("euro")
+  ) {
+    return "Economie";
+  }
+
+  return "Maatschappij";
 }
