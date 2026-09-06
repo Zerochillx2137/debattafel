@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: debattafel
+    runtime: docker
+    healthCheckPath: /api/news
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: OPENAI_MODEL
+        value: gpt-5
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: NEWS_RSS_URL
+        value: https://feeds.nos.nl/nosnieuwsalgemeen
