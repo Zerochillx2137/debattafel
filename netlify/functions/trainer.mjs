@@ -1,11 +1,14 @@
-export default async (request) => {
+export default async function handler(request) {
   try {
     if (request.method !== "POST") {
       return new Response(
         JSON.stringify({ error: "Gebruik POST." }),
         {
           status: 405,
-          headers: { "Content-Type": "application/json" }
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
         }
       );
     }
@@ -21,7 +24,10 @@ export default async (request) => {
         }),
         {
           status: 400,
-          headers: { "Content-Type": "application/json" }
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*"
+          }
         }
       );
     }
@@ -59,9 +65,10 @@ export default async (request) => {
       {
         status: 500,
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
         }
       }
     );
   }
-};
+}
